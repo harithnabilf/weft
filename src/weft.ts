@@ -66,6 +66,7 @@ interface HandState {
   lastSlotKey: string;
   smooth: T.Vector3; // filtered pinch point (loom-local)
   pinchSince: number;
+  noPluckUntil: number;
   cursor: T.Mesh;
 }
 
@@ -171,6 +172,8 @@ class Label {
     g.fillStyle = 'rgba(255,255,255,0.94)';
     g.font = `${this.weight} ${this.px}px ${FONT}`;
     (g as any).letterSpacing = this.sub ? '2px' : '-0.5px';
+    const w = g.measureText(text).width;
+    if (w > 980) g.font = `${this.weight} ${Math.floor((this.px * 980) / w)}px ${FONT}`;
     g.fillText(text, 512, sub ? 62 : 80);
     if (sub) {
       g.fillStyle = 'rgba(255,255,255,0.55)';
@@ -208,6 +211,10 @@ export class WeftSystem extends createSystem({}) {
   private calibrated = false;
   private wasPresenting = false;
   private presentStart = 0;
+  private lastWake = 0;
+  private controllersOnly = false;
+  private palmT: number[] = [];
+  private palmD: number[] = [];
   private loopStart = 0;
   private lastStep = -1;
   private clock = 0;
@@ -285,17 +292,16 @@ export class WeftSystem extends createSystem({}) {
 
   private buildShuttle(): void {
     const h = Y_HI - Y_LO + 0.06;
-    const geo = new T.PlaneGeometry(R_MAX - R_MIN, h);
-    // rotate so the plane runs radially (along -Z) and stands vertically
-    geo.rotateY(Math.PI / 2);
-    geo.translate(0, Y_LO + h / 2 - 0.03, -(R_MIN + R_MAX) / 2);
+    // a soft vertical band of light on the guide radius, facing the player
+    const geo = new T.PlaneGeometry(0.07, h);
+    geo.translate(0, Y_LO + h / 2 - 0.03, -R);
     this.shuttle = new T.Mesh(
       geo,
       new T.MeshBasicMaterial({
         map: shuttleTexture(),
         color: 0xffffff,
         transparent: true,
-        opacity: 0.07,
+        opacity: 0.26,
         blending: T.AdditiveBlending,
         depthWrite: false,
         side: T.DoubleSide,
@@ -303,7 +309,7 @@ export class WeftSystem extends createSystem({}) {
     );
     this.loom.add(this.shuttle);
     this.bead = new T.Mesh(
-      new T.SphereGeometry(0.004, 12, 8),
+      new T.SphereGeometry(0.0055, 14, 10),
       new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }),
     );
     this.loom.add(this.bead);
@@ -329,16 +335,13 @@ export class WeftSystem extends createSystem({}) {
   private buildLabels(): void {
     this.title = new Label(0.36, 96, 600);
     this.title.set('Weft', 'WEAVE MUSIC WITH YOUR HANDS');
-    this.title.mesh.position.set(0, Y_HI + 0.07, -R - 0.08);
+    this.title.mesh.position.set(0, Y_HI + 0.1, -R - 0.08);
     this.title.target = 1;
     this.hint = new Label(0.3, 64, 500);
-    this.hint.mesh.position.set(0, Y_LO - 0.045, -R + 0.02);
-    this.hint.mesh.rotation.x = -0.35;
+    this.hint.mesh.position.set(0, Y_HI + 0.045, -R - 0.06);
     this.tuningLabel = new Label(0.26, 40, 500, true);
     this.tuningLabel.set(`TODAY’S TUNING · ${this.tuning.name.toUpperCase()}`);
-    this.tuningLabel.mesh.position.set(0, Y_LO - 0.085, -R + 0.03);
-    this.tuningLabel.mesh.rotation.x = -0.35;
-    this.tuningLabel.target = 0.8;
+    this.tuningLabel.mesh.position.set(0, Y_HI + 0.1, -R - 0.08);
     this.loom.add(this.title.mesh, this.hint.mesh, this.tuningLabel.mesh);
   }
 
@@ -365,6 +368,7 @@ export class WeftSystem extends createSystem({}) {
         lastSlotKey: '',
         smooth: new T.Vector3(),
         pinchSince: 0,
+        noPluckUntil: 0,
         cursor,
       });
     }
@@ -519,7 +523,7 @@ export class WeftSystem extends createSystem({}) {
   }
 
   // ---------------------------------------------------------- sound + light
-  private playSlot(th: Thread, slot: Slot, vel: number): void {
+  private playSlot(th: Thread, slot: Slot, vel: number, priority = false): void {
     this.v1.copy(slot.pos);
     this.loom.localToWorld(this.v1);
     for (const d of slot.degrees) {
@@ -529,6 +533,7 @@ export class WeftSystem extends createSystem({}) {
         th.hand,
         slot.depth,
         vel * (slot.degrees.length > 1 ? 0.75 : 1),
+        priority,
       );
     }
     th.energy = 1;
@@ -575,6 +580,10 @@ export class WeftSystem extends createSystem({}) {
     this.up.set(0, 1, 0).applyQuaternion(this.q1);
     this.audio.updateListener(this.v1, this.fwd, this.up);
 
+    if (presenting && this.audio.ctx.state !== 'running' && time - this.lastWake > 1) {
+      this.lastWake = time;
+      this.audio.resume();
+    }
     if (presenting) this.readHands(time);
     this.sequencer(time);
     this.animate(dt, time);
@@ -602,6 +611,13 @@ export class WeftSystem extends createSystem({}) {
     const ref = this.renderer.xr.getReferenceSpace();
     this.hands[0].present = this.hands[1].present = false;
     if (!frame || !ref) return;
+    let pads = 0;
+    let handsSeen = 0;
+    for (const src of frame.session.inputSources) {
+      if ((src as any).hand) handsSeen++;
+      else if (src.gamepad) pads++;
+    }
+    this.controllersOnly = pads > 0 && handsSeen === 0;
     const origin = this.player.matrixWorld;
     for (const src of frame.session.inputSources) {
       const hand = (src as any).hand as XRHand | undefined;
@@ -639,7 +655,13 @@ export class WeftSystem extends createSystem({}) {
       }
       // filter tracking jitter; start the stroke once the pinch has settled
       hs.smooth.lerp(hs.pinchPt, 0.45);
-      if (hs.pinching && !hs.drawing && time - hs.pinchSince > 0.12) this.beginStroke(hi);
+      if (
+        hs.pinching &&
+        !hs.drawing &&
+        time - hs.pinchSince > 0.12 &&
+        this.inLoom(hs.smooth)
+      )
+        this.beginStroke(hi);
       if (hs.pinching && hs.drawing) this.extendStroke(hi, time);
       if (!hs.pinching && was) this.endStroke(hi);
       if (!hs.pinching) this.tryPluck(hi, time);
@@ -653,6 +675,20 @@ export class WeftSystem extends createSystem({}) {
     }
     // clap: both palms meet → clear the loom
     const [l, r] = this.hands;
+    let closing = 0;
+    if (l.present && r.present) {
+      const d = l.palm.distanceTo(r.palm);
+      this.palmT.push(time);
+      this.palmD.push(d);
+      while (this.palmT.length && time - this.palmT[0] > 0.3) {
+        this.palmT.shift();
+        this.palmD.shift();
+      }
+      closing = Math.max(...this.palmD) - d;
+    } else {
+      this.palmT.length = 0;
+      this.palmD.length = 0;
+    }
     this.v3.copy(l.palm).add(r.palm).multiplyScalar(0.5);
     this.loom.worldToLocal(this.v3);
     if (
@@ -661,6 +697,8 @@ export class WeftSystem extends createSystem({}) {
       !l.drawing &&
       !r.drawing &&
       l.palm.distanceTo(r.palm) < CLAP_DIST &&
+      closing > 0.08 && // a real clap closes fast; hands resting together don't
+
       this.v3.y > Y_LO - 0.04 && // in front of the chest, not resting on the lap
       this.v3.z < -0.12 &&
       time - this.lastClap > 1.5
@@ -668,6 +706,11 @@ export class WeftSystem extends createSystem({}) {
       this.lastClap = time;
       this.clear();
     }
+  }
+
+  private inLoom(p: T.Vector3): boolean {
+    const r = Math.hypot(p.x, p.z);
+    return p.y > Y_LO - 0.1 && p.y < Y_HI + 0.14 && r > 0.14 && r < 0.82 && p.z < -0.05;
   }
 
   beginStroke(h: number): void {
@@ -708,6 +751,7 @@ export class WeftSystem extends createSystem({}) {
         h,
         depthOf(hs.smooth),
         0.45,
+        true,
       );
       this.flash(hs.smooth, COLORS[h], 0.8);
     }
@@ -717,7 +761,9 @@ export class WeftSystem extends createSystem({}) {
     const hs = this.hands[h];
     const th = hs.drawing;
     hs.drawing = null;
+    hs.noPluckUntil = this.clock + 0.8;
     if (!th) return;
+    th.lastPluck = this.clock + 0.6;
     if (th.pts.length < 3) {
       th.dying = 0.0001;
       return;
@@ -734,6 +780,7 @@ export class WeftSystem extends createSystem({}) {
 
   private tryPluck(h: number, time: number): void {
     const hs = this.hands[h];
+    if (time < hs.noPluckUntil) return;
     for (const th of this.threads) {
       if (th.dying || th.ghost || time - th.lastPluck < 0.22) continue;
       for (let i = 0; i < th.pts.length; i += 1) {
@@ -741,7 +788,7 @@ export class WeftSystem extends createSystem({}) {
           th.lastPluck = time;
           const p = th.pts[i];
           const slot: Slot = { degrees: [degreeOf(p)], pos: p.clone(), depth: depthOf(p) };
-          this.playSlot(th, slot, 0.85);
+          this.playSlot(th, slot, 0.85, true);
           if (this.stage === 'pluck') {
             this.plucked = true;
             this.stage = 'clap';
@@ -896,14 +943,19 @@ export class WeftSystem extends createSystem({}) {
         // only worth teaching once there is a weave to clear
         const live = this.threads.filter((t) => !t.ghost && !t.dying).length;
         if (live < 3) this.stageT = time;
-        this.hint.set('Clap to clear the loom');
+        else this.hint.set('Clap to clear the loom');
         this.hint.target = live >= 3 && since < 9 ? 1 : 0;
         break;
       }
       default:
         this.hint.target = 0;
     }
+    if (this.controllersOnly) {
+      this.hint.set('Put your controllers down', 'WEFT IS PLAYED WITH YOUR HANDS');
+      this.hint.target = 1;
+    }
     this.hint.tick(dt);
+    this.tuningLabel.target = this.title.opacity < 0.15 && inSession > 7 ? 0.75 : 0;
     this.tuningLabel.tick(dt);
   }
 }

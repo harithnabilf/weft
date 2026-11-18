@@ -156,8 +156,16 @@ export class WeftAudio {
    * hand 0 = left (warm, low, plucked string), hand 1 = right (glass bell).
    * depth 0..1: near threads are bright and short, far threads soft and long.
    */
-  note(midi: number, pos: Vec3Like, hand: number, depth: number, vel = 0.7): void {
-    if (this.ctx.state !== 'running' || this.voices > 28) return;
+  note(
+    midi: number,
+    pos: Vec3Like,
+    hand: number,
+    depth: number,
+    vel = 0.7,
+    priority = false,
+  ): void {
+    // loop playback yields first; notes you are actively playing are kept
+    if (this.ctx.state !== 'running' || this.voices > (priority ? 48 : 28)) return;
     const ctx = this.ctx;
     const t = ctx.currentTime + 0.005;
     const f = mtof(midi);
