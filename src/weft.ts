@@ -211,6 +211,8 @@ export class WeftSystem extends createSystem({}) {
   private calibrated = false;
   private wasPresenting = false;
   private presentStart = 0;
+  private undo: { h: number; pts: T.Vector3[] }[] = [];
+  private undoUntil = 0;
   private lastWake = 0;
   private controllersOnly = false;
   private palmT: number[] = [];
@@ -229,6 +231,7 @@ export class WeftSystem extends createSystem({}) {
   private v2 = new T.Vector3();
   private v3 = new T.Vector3();
   private q1 = new T.Quaternion();
+  private q2 = new T.Quaternion();
   private fwd = new T.Vector3();
   private up = new T.Vector3();
 
@@ -572,6 +575,12 @@ export class WeftSystem extends createSystem({}) {
     }
     // the XR head pose settles over the first frames of a session
     if (!this.calibrated || time - this.presentStart < 0.6) this.calibrate();
+    else if (presenting && !this.hands[0].drawing && !this.hands[1].drawing && this.headPose()) {
+      // safety net: the loom is centred on the seated player; if it is far off, re-centre
+      const dx = this.v1.x - this.loom.position.x;
+      const dz = this.v1.z - this.loom.position.z;
+      if (dx * dx + dz * dz > 0.25) this.calibrate();
+    }
 
     // listener follows the head
     this.camera.getWorldPosition(this.v1);
@@ -589,9 +598,27 @@ export class WeftSystem extends createSystem({}) {
     this.animate(dt, time);
   }
 
-  private calibrate(): void {
+  /** Head pose in world space: the real XR viewer pose when in a session. */
+  private headPose(): boolean {
+    if (this.renderer.xr.isPresenting) {
+      const frame = this.xrFrame as XRFrame | undefined;
+      const ref = this.renderer.xr.getReferenceSpace();
+      const vp = frame && ref ? frame.getViewerPose(ref) : null;
+      if (!vp) return false;
+      const t = vp.transform;
+      this.v1.set(t.position.x, t.position.y, t.position.z).applyMatrix4(this.player.matrixWorld);
+      this.player.getWorldQuaternion(this.q1);
+      this.q2.set(t.orientation.x, t.orientation.y, t.orientation.z, t.orientation.w);
+      this.q1.multiply(this.q2);
+      return true;
+    }
     this.camera.getWorldPosition(this.v1);
     this.camera.getWorldQuaternion(this.q1);
+    return true;
+  }
+
+  private calibrate(): void {
+    if (!this.headPose()) return;
     if (!Number.isFinite(this.v1.y)) return;
     this.fwd.set(0, 0, -1).applyQuaternion(this.q1);
     const yaw = Math.atan2(-this.fwd.x, -this.fwd.z);
@@ -800,13 +827,24 @@ export class WeftSystem extends createSystem({}) {
     }
   }
 
+  /** Clap clears the loom; a second clap within a few seconds brings it back. */
   clear(): void {
+    if (this.undo.length && this.clock < this.undoUntil) {
+      this.restoreSnapshot();
+      return;
+    }
     let any = false;
+    const snap: { h: number; pts: T.Vector3[] }[] = [];
     for (const th of this.threads) {
       if (!th.dying && !th.ghost) {
+        snap.push({ h: th.hand, pts: th.pts.map((p) => p.clone()) });
         th.dying = 0.0001;
         any = true;
       }
+    }
+    if (any) {
+      this.undo = snap;
+      this.undoUntil = this.clock + 5;
     }
     if (any) {
       this.audio.whoosh();
@@ -820,6 +858,22 @@ export class WeftSystem extends createSystem({}) {
       this.stage = 'free';
       this.stageT = this.clock;
     }
+    this.save();
+  }
+
+  private restoreSnapshot(): void {
+    for (const d of this.undo) {
+      const th = this.makeThread(d.h);
+      th.pts = d.pts;
+      this.rebuildThread(th);
+      this.computeSlots(th);
+      th.energy = 1;
+      this.threads.push(th);
+      const mid = th.pts[Math.floor(th.pts.length / 2)];
+      if (mid) this.flash(mid, COLORS[d.h], 1.6);
+    }
+    this.undo = [];
+    this.undoUntil = 0;
     this.save();
   }
 
@@ -950,7 +1004,12 @@ export class WeftSystem extends createSystem({}) {
         break;
       }
       default:
-        this.hint.target = 0;
+        if (this.undo.length && time < this.undoUntil) {
+          this.hint.set('Clap again to bring it back');
+          this.hint.target = 1;
+        } else {
+          this.hint.target = 0;
+        }
     }
     if (this.controllersOnly) {
       this.hint.set('Put your controllers down', 'WEFT IS PLAYED WITH YOUR HANDS');
