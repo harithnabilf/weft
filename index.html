@@ -10,6 +10,21 @@
     <title>Weft — weave music with your hands</title>
     <meta name="description" content="A seated, hands-first WebXR instrument for Meta Quest: pinch and draw threads of light that sing from where you drew them." />
     <meta name="theme-color" content="#0b0d12" />
+    <style>
+      .weft-note {
+        position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%);
+        width: min(560px, calc(100vw - 32px)); box-sizing: border-box;
+        padding: 18px 22px; border-radius: 18px;
+        background: rgba(20, 22, 28, 0.62);
+        -webkit-backdrop-filter: blur(20px) saturate(140%); backdrop-filter: blur(20px) saturate(140%);
+        border: 0.5px solid rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.92);
+        font: 15px/1.45 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', Inter, Roboto, sans-serif;
+        letter-spacing: -0.01em; display: flex; flex-direction: column; gap: 2px;
+      }
+      .weft-note strong { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+      .weft-note .dim { color: rgba(255, 255, 255, 0.58); margin-top: 6px; }
+    </style>
   </head>
   <body style="margin: 0; background: #0b0d12">
     <div id="scene-container"></div>

@@ -557,6 +557,12 @@ export class WeftSystem extends createSystem({}) {
       if (presenting) {
         this.audio.resume();
         this.loopStart = time;
+        const session = this.renderer.xr.getSession();
+        session?.addEventListener('selectstart', () => this.audio.resume());
+        const ref = this.renderer.xr.getReferenceSpace() as any;
+        ref?.addEventListener?.('reset', () => {
+          this.calibrated = false;
+        });
       }
     }
     // the XR head pose settles over the first frames of a session
@@ -581,6 +587,11 @@ export class WeftSystem extends createSystem({}) {
     this.fwd.set(0, 0, -1).applyQuaternion(this.q1);
     const yaw = Math.atan2(-this.fwd.x, -this.fwd.z);
     this.loom.position.copy(this.v1);
+    if (!this.renderer.xr.isPresenting) {
+      // flat preview: sit the viewer a little behind the loom so all of it shows
+      this.loom.position.x += -Math.sin(yaw) * 0.32;
+      this.loom.position.z += -Math.cos(yaw) * 0.32;
+    }
     this.loom.rotation.set(0, yaw, 0);
     this.loom.updateMatrixWorld(true);
     this.calibrated = true;
@@ -642,12 +653,16 @@ export class WeftSystem extends createSystem({}) {
     }
     // clap: both palms meet → clear the loom
     const [l, r] = this.hands;
+    this.v3.copy(l.palm).add(r.palm).multiplyScalar(0.5);
+    this.loom.worldToLocal(this.v3);
     if (
       l.present &&
       r.present &&
       !l.drawing &&
       !r.drawing &&
       l.palm.distanceTo(r.palm) < CLAP_DIST &&
+      this.v3.y > Y_LO - 0.04 && // in front of the chest, not resting on the lap
+      this.v3.z < -0.12 &&
       time - this.lastClap > 1.5
     ) {
       this.lastClap = time;
