@@ -1,10 +1,25 @@
 # Weft
 
+[![Weft: weave music with your hands. Click to watch the 90-second demo on YouTube.](docs/images/weft-cover.png)](https://www.youtube.com/watch?v=xezLugHxyko)
+
+**▶ Watch the demo (90 s):** https://www.youtube.com/watch?v=xezLugHxyko
+
 **Weave music with your hands.** Weft is a seated, hands-first WebXR instrument for Meta Quest. Pinch and draw threads of light in the air in front of you. A slow sweep of light, the shuttle, crosses the loom, and every thread it touches sings from the exact spot where you drew it.
 
 **Play it:** https://harithnabilf.github.io/weft/ (open in the Meta Quest Browser and press **Enter XR**; hand tracking on, no controllers needed).
 
 Entry for the Meta VR Start Developer Competition 2026, Entertainment track, New Experience division.
+
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Pinch and draw: a thread of light follows your pinch](docs/images/weft-15s.png) | ![Touch a thread to pluck it](docs/images/weft-22s.png) |
+| **Pinch and draw.** You hear the melody while you draw it. | **Touch a thread** to pluck it like a string. |
+| ![Draw straight up for a chord](docs/images/weft-38s.png) | ![The shuttle sweeps the loom](docs/images/weft-47s.png) |
+| **Draw straight up** for a chord. | **The shuttle** sweeps the loom, and each note plays from where it was drawn. |
+
+These are frames from a real session in Meta's Immersive Web Emulator (IWER) with emulated Quest 3 hand tracking.
 
 ## How it plays
 
