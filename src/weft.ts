@@ -699,7 +699,7 @@ export class WeftSystem extends createSystem({}) {
       l.palm.distanceTo(r.palm) < CLAP_DIST &&
       closing > 0.08 && // a real clap closes fast; hands resting together don't
 
-      this.v3.y > Y_LO - 0.04 && // in front of the chest, not resting on the lap
+      this.v3.y > Y_LO - 0.12 && // in front of the body, not resting on the lap
       this.v3.z < -0.12 &&
       time - this.lastClap > 1.5
     ) {
@@ -828,7 +828,9 @@ export class WeftSystem extends createSystem({}) {
     const step = Math.floor((t % LOOP) / STEP_DUR);
     if (step !== this.lastStep) {
       this.lastStep = step;
-      for (const th of this.threads) {
+      // newest threads first, so a dense weave never silences what you just drew
+      for (let i = this.threads.length - 1; i >= 0; i--) {
+        const th = this.threads[i];
         if (th.dying) continue;
         if (this.hands.some((hs) => hs.drawing === th)) continue;
         const slot = th.slots.get(step);

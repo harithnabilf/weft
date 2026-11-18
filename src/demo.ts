@@ -90,7 +90,7 @@ function sample(h: number, t: number): { p: P; pinch: boolean } {
     if (s.kind === 'draw') {
       p = s.path(u);
       pinch = t < s.t1;
-    } else if (TL[h].some((n) => n.kind === 'draw' && n.t0 > t && n.t0 - t < 0.3)) {
+    } else if (TL[h].some((n) => n.kind === 'draw' && n.t0 > t && n.t0 - t < 0.1)) {
       pinch = true;
       const from = (s as any).from ?? ((s as any).from = { ...p });
       const k = ease(u);
@@ -184,7 +184,7 @@ w.demoTick = (time: number) => {
       else half = 0.03 + 0.14 * Math.min(1, (t - 58.5) / 0.7);
       want.set(sgn * half, -0.25 - 0.2 * (1 - rot), -0.3);
       w.loom.localToWorld(want);
-      const g = t >= 57.5 && t < 57.8 ? 0.7 : 0.25;
+      const g = t >= 57.5 && t < 58.5 ? 0.8 : 0.25;
       hand.position.x += (want.x - hand.position.x) * g;
       hand.position.y += (want.y - hand.position.y) * g;
       hand.position.z += (want.z - hand.position.z) * g;

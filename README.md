@@ -29,7 +29,7 @@ Every note is spatialised (HRTF) at the point where its thread was drawn, so the
 
 ## Designed for a seat
 
-- Everything fits within arm's reach, in a 140° arc in front of you, from lap to eye level. It passes the airplane-seat test.
+- Everything fits within arm's reach, in a 140° arc in front of you, from lap to eye level. You never need to stand, turn around or lean.
 - The loom calibrates to your head when the session starts, so it works at any seat height.
 - It is fully usable with hands and works one-handed.
 - It teaches itself without a wall of text. A ghost fingertip draws a demo thread that plays immediately, followed by three short hints: *Pinch and draw*, *Touch a thread to pluck it*, *Clap to clear the loom*.
