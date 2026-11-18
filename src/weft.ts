@@ -30,7 +30,7 @@ const MAX_THREADS = 28;
 
 const PINCH_ON = 0.022;
 const PINCH_OFF = 0.04;
-const PLUCK_DIST = 0.016;
+const PLUCK_DIST = 0.024;
 const CLAP_DIST = 0.075;
 const STORE_KEY = 'weft.weave.v1';
 

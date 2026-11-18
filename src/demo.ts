@@ -39,37 +39,38 @@ const counter = (u: number): P => ({
   y: -0.32 + 0.12 * Math.sin(u * Math.PI * 2),
 });
 
-// [left, right] timelines, seconds from the start of the recording
+// [left, right] timelines, seconds from the start of the recording,
+// re-timed to the developer's own voiceover
 const TL: Seg[][] = [
   [
-    { t0: 21.5, t1: 23.5, kind: 'move', to: bass(0) },
-    { t0: 23.5, t1: 28.5, kind: 'draw', path: bass },
-    { t0: 28.5, t1: 30, kind: 'move', to: REST[0] },
-    { t0: 62.5, t1: 64, kind: 'move', to: counter(0) },
-    { t0: 64, t1: 69, kind: 'draw', path: counter },
-    { t0: 69, t1: 70.5, kind: 'move', to: REST[0] },
+    { t0: 27.0, t1: 29.0, kind: 'move', to: bass(0) },
+    { t0: 29.0, t1: 34.0, kind: 'draw', path: bass },
+    { t0: 34.0, t1: 35.5, kind: 'move', to: REST[0] },
+    { t0: 64.4, t1: 65.9, kind: 'move', to: counter(0) },
+    { t0: 65.9, t1: 70.9, kind: 'draw', path: counter },
+    { t0: 70.9, t1: 72.4, kind: 'move', to: REST[0] },
   ],
   [
-    { t0: 8.5, t1: 10.5, kind: 'move', to: wave(0) },
-    { t0: 10.5, t1: 15.5, kind: 'draw', path: wave },
+    { t0: 11.0, t1: 12.9, kind: 'move', to: wave(0) },
+    { t0: 12.9, t1: 17.9, kind: 'draw', path: wave },
     // pluck: sweep the bare fingertip down through the new thread
-    { t0: 15.6, t1: 16.3, kind: 'move', to: { a: 0.95, r: 0.36, y: 0.1 } },
-    { t0: 16.3, t1: 17.6, kind: 'move', to: { a: 0.45, r: 0.4, y: 0.1 } },
-    { t0: 17.6, t1: 19.2, kind: 'move', to: { a: 0.45, r: 0.4, y: -0.42 } },
-    { t0: 19.2, t1: 20.6, kind: 'move', to: REST[1] },
-    { t0: 32.5, t1: 34, kind: 'move', to: chord(0) },
-    { t0: 34, t1: 35.4, kind: 'draw', path: chord },
-    { t0: 35.4, t1: 36.5, kind: 'move', to: REST[1] },
+    { t0: 18.0, t1: 18.7, kind: 'move', to: { a: 0.95, r: 0.36, y: 0.1 } },
+    { t0: 18.7, t1: 20.5, kind: 'move', to: { a: 0.45, r: 0.4, y: 0.1 } },
+    { t0: 21.3, t1: 22.9, kind: 'move', to: { a: 0.45, r: 0.4, y: -0.42 } },
+    { t0: 22.9, t1: 24.3, kind: 'move', to: REST[1] },
+    { t0: 35.8, t1: 37.3, kind: 'move', to: chord(0) },
+    { t0: 37.3, t1: 38.7, kind: 'draw', path: chord },
+    { t0: 38.7, t1: 39.8, kind: 'move', to: REST[1] },
     // a second pluck, through the far bass thread
-    { t0: 44, t1: 45.5, kind: 'move', to: { a: 0.6, r: 0.54, y: 0.0 } },
-    { t0: 45.5, t1: 47, kind: 'move', to: { a: 0.6, r: 0.54, y: -0.45 } },
-    { t0: 47, t1: 48.5, kind: 'move', to: REST[1] },
-    { t0: 62, t1: 63.5, kind: 'move', to: spiral(0) },
-    { t0: 63.5, t1: 68.5, kind: 'draw', path: spiral },
-    { t0: 68.5, t1: 70, kind: 'move', to: REST[1] },
+    { t0: 47.0, t1: 48.5, kind: 'move', to: { a: 0.6, r: 0.54, y: 0.0 } },
+    { t0: 48.5, t1: 50.0, kind: 'move', to: { a: 0.6, r: 0.54, y: -0.45 } },
+    { t0: 50.0, t1: 51.5, kind: 'move', to: REST[1] },
+    { t0: 64.2, t1: 65.4, kind: 'move', to: spiral(0) },
+    { t0: 65.4, t1: 70.4, kind: 'draw', path: spiral },
+    { t0: 70.4, t1: 71.9, kind: 'move', to: REST[1] },
   ],
 ];
-const END = 84;
+const END = 86.5;
 
 const ease = (u: number) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
 const toVec = (p: P, v: T.Vector3) =>
@@ -114,7 +115,7 @@ function sample(h: number, t: number): { p: P; pinch: boolean } {
 
 function setHead(t: number) {
   // seated, glancing down at the loom, with a slow look across late in the piece
-  const yaw = t > 72 ? 0.32 * Math.sin((t - 72) * 0.45) : 0.03 * Math.sin(t * 0.3);
+  const yaw = t > 74 ? 0.32 * Math.sin((t - 74) * 0.45) : 0.03 * Math.sin(t * 0.3);
   const pitch = -0.3 + 0.015 * Math.sin(t * 0.5);
   const cy = Math.cos(yaw / 2),
     sy = Math.sin(yaw / 2),
@@ -174,17 +175,17 @@ w.demoTick = (time: number) => {
     const hs = w.hands[h];
     // clap: palms turn to face each other, then meet fast in front of the chest
     const rot =
-      t < 55.2 ? 0 : t < 56.8 ? ease((t - 55.2) / 1.6) : t < 59.0 ? 1 : t < 60.6 ? 1 - ease((t - 59.0) / 1.6) : 0;
+      t < 58.7 ? 0 : t < 60.3 ? ease((t - 58.7) / 1.6) : t < 62.5 ? 1 : t < 64.1 ? 1 - ease((t - 62.5) / 1.6) : 0;
     if (rot > 0) {
       const sgn = h === 0 ? -1 : 1;
       let half: number;
-      if (t < 57.5) half = 0.17;
-      else if (t < 57.75) half = 0.17 - (0.14 * (t - 57.5)) / 0.25; // ~1.1 m/s closing
-      else if (t < 58.5) half = 0.03;
-      else half = 0.03 + 0.14 * Math.min(1, (t - 58.5) / 0.7);
+      if (t < 61.0) half = 0.17;
+      else if (t < 61.25) half = 0.17 - (0.14 * (t - 61.0)) / 0.25; // ~1.1 m/s closing
+      else if (t < 62.0) half = 0.03;
+      else half = 0.03 + 0.14 * Math.min(1, (t - 62.0) / 0.7);
       want.set(sgn * half, -0.25 - 0.2 * (1 - rot), -0.3);
       w.loom.localToWorld(want);
-      const g = t >= 57.5 && t < 58.5 ? 0.8 : 0.25;
+      const g = t >= 61.0 && t < 62.0 ? 0.8 : 0.25;
       hand.position.x += (want.x - hand.position.x) * g;
       hand.position.y += (want.y - hand.position.y) * g;
       hand.position.z += (want.z - hand.position.z) * g;

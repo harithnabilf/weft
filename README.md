@@ -31,13 +31,13 @@ Every note is spatialised (HRTF) at the point where its thread was drawn, so the
 
 - Everything fits within arm's reach, in a 140° arc in front of you, from lap to eye level. You never need to stand, turn around or lean.
 - The loom calibrates to your head when the session starts, so it works at any seat height.
-- It is fully usable with hands and works one-handed.
+- It is fully usable with hands. Drawing and plucking work one-handed.
 - It teaches itself without a wall of text. A ghost fingertip draws a demo thread that plays immediately, followed by three short hints: *Pinch and draw*, *Touch a thread to pluck it*, *Clap to clear the loom*.
 - Every sound has a matching visual pulse, so the rhythm can be followed without audio.
 
 ## Built with
 
-- [Immersive Web SDK (IWSDK) 1.1](https://iwsdk.dev): World and ECS systems, WebXR hand tracking (25-joint hand skeleton), Three.js (super-three r185)
+- [Immersive Web SDK (IWSDK) 1.1](https://iwsdk.dev): World and ECS systems, WebXR hand tracking (fingertip, thumb and palm joints), Three.js (super-three r185)
 - Web Audio API: every sound is synthesised live (additive bell partials, plucked strings, a convolution reverb generated in code, HRTF panners). There are no samples and no third-party services.
 - IWER (Immersive Web Emulation Runtime) for development and for recording the demo. The video is a real session driven through IWER's programmatic hand API (`src/demo.ts`, dev builds only).
 
